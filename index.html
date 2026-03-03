@@ -2508,6 +2508,111 @@ function num(v){
     window.addEventListener('load', async () => { try{ navigator.serviceWorker.register('./sw.js'); } catch(e){} });
   }
 })();
+  /* ===== v16 patch: money formatting + mobile error toast (safe) ===== */
+(function(){
+  // 1) Show blocking JS errors on mobile (so we don't "see nothing")
+  window.addEventListener('error', (e) => {
+    try {
+      const msg = e && e.message ? e.message : 'Erreur JS inconnue';
+      // If toast exists, use it, otherwise fallback alert
+      if (typeof toast === 'function') toast('Erreur JS: ' + msg);
+    } catch(_) {}
+  });
+
+  // 2) Helpers for "350 000" formatting
+  const fmtMoney0 = new Intl.NumberFormat('fr-BE', { maximumFractionDigits: 0 });
+  function formatMoney0(n){
+    if (!Number.isFinite(n)) return '';
+    return fmtMoney0.format(Math.round(n)).replace(/\u00A0/g,' ').replace(/\u202F/g,' ');
+  }
+
+  // Robust parse: accepts "350 000", "350.000", "350000", "3,5"
+  function parseSmartNumber(v){
+    const s0 = String(v ?? '').trim()
+      .replace(/\u00A0/g,' ')
+      .replace(/\u202F/g,' ')
+      .replace(/€/g,'')
+      .replace(/\s+/g,'');
+    if (!s0) return 0;
+
+    if (s0.includes('.') && s0.includes(',')){
+      const s = s0.replace(/\./g,'').replace(',', '.');
+      const n = Number(s);
+      return Number.isFinite(n) ? n : 0;
+    }
+    if (s0.includes(',')){
+      const s = s0.replace(',', '.');
+      const n = Number(s);
+      return Number.isFinite(n) ? n : 0;
+    }
+    if (s0.includes('.')){
+      const parts = s0.split('.');
+      const looksThousands = parts.length > 2 || (parts.length === 2 && parts[1].length === 3);
+      const s = looksThousands ? s0.replace(/\./g,'') : s0;
+      const n = Number(s);
+      return Number.isFinite(n) ? n : 0;
+    }
+    const n = Number(s0);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  // 3) Attach formatting to EUR/€ input fields (on blur)
+  function enableMoneyFormatting(){
+    // Detect inputs by labels that mention EUR/€
+    document.querySelectorAll('label[for]').forEach(label => {
+      const txt = (label.textContent || '').toUpperCase();
+      if (!(txt.includes('EUR') || txt.includes('€'))) return;
+
+      const id = label.getAttribute('for');
+      const input = document.getElementById(id);
+      if (!input || input.tagName !== 'INPUT') return;
+
+      // Avoid formatting rates/percent/years etc.
+      const lid = (input.id || '').toLowerCase();
+      const exclude = ['rate','pct','percent','inflation','appreciation','years','horizon','coverage','ltv','age'];
+      if (exclude.some(k => lid.includes(k))) return;
+
+      // Turn into text to allow spaces
+      input.type = 'text';
+      input.classList.add('money');
+      input.setAttribute('inputmode','numeric');
+
+      if (input._moneyBound) return;
+
+      input.addEventListener('focus', () => {
+        input.value = String(input.value).replace(/\s+/g,'');
+      });
+
+      input.addEventListener('blur', () => {
+        const raw = String(input.value).trim();
+        if (!raw) return;
+        const n = parseSmartNumber(raw);
+        input.value = formatMoney0(n);
+      });
+
+      // Format existing value once
+      if (String(input.value).trim() !== '') {
+        input.value = formatMoney0(parseSmartNumber(input.value));
+      }
+
+      input._moneyBound = true;
+    });
+  }
+
+  // Run once at start, and also after tab switches (but without touching your tab logic)
+  function safeInit(){
+    try { enableMoneyFormatting(); } catch(_) {}
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', safeInit);
+  } else {
+    safeInit();
+  }
+  document.addEventListener('click', (ev) => {
+    const t = ev.target && ev.target.closest && ev.target.closest('.tab');
+    if (t) setTimeout(safeInit, 0);
+  });
+})();
 </script>
 </body>
 </html>
