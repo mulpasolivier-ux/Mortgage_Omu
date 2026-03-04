@@ -1,0 +1,82 @@
+
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mortgage Tool – Clean Base</title>
+<style>
+body{font-family:Arial;background:#0f172a;color:white;margin:0;padding:20px}
+nav button{margin:5px;padding:8px 12px;border:none;border-radius:6px;cursor:pointer}
+section{display:none;margin-top:20px}
+section.active{display:block}
+input{padding:6px;margin:5px 0;width:100%;max-width:300px}
+button.calc{background:#22c55e;color:black}
+.card{background:#1e293b;padding:15px;border-radius:8px;margin-top:10px}
+</style>
+</head>
+<body>
+
+<h1>Mortgage Tool – Clean Base</h1>
+
+<nav>
+<button onclick="showTab('sim')">Simulateur</button>
+<button onclick="showTab('invest')">Investissement</button>
+<button onclick="showTab('sep')">Séparation</button>
+</nav>
+
+<section id="sim" class="active">
+<h2>Simulateur prêt</h2>
+<input id="amount" placeholder="Montant prêt">
+<input id="rate" placeholder="Taux (%)">
+<input id="years" placeholder="Durée (années)">
+<button class="calc" onclick="simulate()">Calculer</button>
+<div class="card" id="simResult"></div>
+</section>
+
+<section id="invest">
+<h2>Investissement locatif</h2>
+<input id="rent" placeholder="Loyer mensuel">
+<input id="loan" placeholder="Mensualité crédit">
+<button class="calc" onclick="calcInvest()">Calculer</button>
+<div class="card" id="investResult"></div>
+</section>
+
+<section id="sep">
+<h2>Séparation</h2>
+<input id="sale" placeholder="Prix vente">
+<input id="bank" placeholder="Solde banque">
+<button class="calc" onclick="calcSep()">Calculer</button>
+<div class="card" id="sepResult"></div>
+</section>
+
+<script>
+function showTab(id){
+  document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+function simulate(){
+  const P = parseFloat(amount.value)||0;
+  const r = (parseFloat(rate.value)||0)/100/12;
+  const n = (parseFloat(years.value)||0)*12;
+  if(!P||!r||!n){ simResult.innerHTML="Données invalides"; return; }
+  const m = P*r/(1-Math.pow(1+r,-n));
+  simResult.innerHTML = "Mensualité: " + m.toFixed(2) + " €";
+}
+
+function calcInvest(){
+  const rentVal = parseFloat(rent.value)||0;
+  const loanVal = parseFloat(loan.value)||0;
+  investResult.innerHTML = "Cashflow mensuel: " + (rentVal-loanVal).toFixed(2) + " €";
+}
+
+function calcSep(){
+  const saleVal = parseFloat(sale.value)||0;
+  const bankVal = parseFloat(bank.value)||0;
+  sepResult.innerHTML = "Net à partager: " + (saleVal-bankVal).toFixed(2) + " €";
+}
+</script>
+
+</body>
+</html>
