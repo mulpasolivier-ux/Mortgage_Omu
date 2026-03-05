@@ -1,82 +1,233 @@
-
 <!doctype html>
 <html lang="fr">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mortgage Tool – Clean Base</title>
-<style>
-body{font-family:Arial;background:#0f172a;color:white;margin:0;padding:20px}
-nav button{margin:5px;padding:8px 12px;border:none;border-radius:6px;cursor:pointer}
-section{display:none;margin-top:20px}
-section.active{display:block}
-input{padding:6px;margin:5px 0;width:100%;max-width:300px}
-button.calc{background:#22c55e;color:black}
-.card{background:#1e293b;padding:15px;border-radius:8px;margin-top:10px}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0b0f18" />
+  <meta name="description" content="Mortgage Tool – Olivier (Belgique): prêt hypothécaire, budget total, investissement locatif, acheter vs louer, séparation." />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon-192.png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <title>Mortgage Tool – Olivier</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo"><img src="icons/icon-192.png" alt="" style="width:100%;height:100%;object-fit:cover"/></div>
+        <div class="title">
+          <h1>Mortgage Tool – Olivier</h1>
+          <p>Simulateur prêt hypothécaire (BE) + budget total + investissement locatif + acheter vs louer + séparation (vente / rachat).</p>
+        </div>
+      </div>
+      <div class="topActions">
+        <button id="installBtn" class="secondary" type="button" style="display:none">Ajouter à l’écran d’accueil</button>
+        <button id="printBtn" class="secondary" type="button">Exporter PDF (imprimer)</button>
+        <button id="resetBtn" class="danger" type="button">Reset</button>
+      </div>
+    </header>
 
-<h1>Mortgage Tool – Clean Base</h1>
+    <div class="nav" id="navTabs">
+      <div class="tab active" data-screen="sim">Simulateur</div>
+      <div class="tab" data-screen="budget">Budget total</div>
+      <div class="tab" data-screen="invest">Invest locatif</div>
+      <div class="tab" data-screen="buyrent">Acheter vs louer</div>
+      <div class="tab" data-screen="separation">Séparation</div>
+      <div class="tab" data-screen="dashboard">Dashboard</div>
+    </div>
 
-<nav>
-<button onclick="showTab('sim')">Simulateur</button>
-<button onclick="showTab('invest')">Investissement</button>
-<button onclick="showTab('sep')">Séparation</button>
-</nav>
+    <section class="screen" id="screen-sim">
+      <div class="grid cols2">
+        <div class="card">
+          <div class="head"><h2>Prêt hypothécaire</h2><p>Taux fixe, mensualité, coût total, tableau d’amortissement.</p></div>
+          <div class="body">
+            <div class="grid cols2">
+              <div class="field"><label for="loanAmount">Montant du prêt (EUR)</label><input id="loanAmount" type="number" inputmode="decimal" placeholder="ex: 300000"></div>
+              <div class="field"><label for="loanRate">Taux annuel fixe (%)</label><input id="loanRate" type="number" inputmode="decimal" placeholder="ex: 3.5"></div>
+              <div class="field"><label for="loanYears">Durée (années)</label><select id="loanYears"><option>10</option><option>15</option><option selected>20</option><option>25</option><option>30</option></select></div>
+              <div class="field"><label for="loanCompareYears">Comparer avec (années)</label><select id="loanCompareYears"><option selected>15</option><option>20</option><option>25</option><option>30</option></select></div>
+              <div class="field"><label for="asrdMonthly">ASRD (€/mois, option)</label><input id="asrdMonthly" type="number" inputmode="decimal" placeholder="ex: 45"><div class="help">Assurance solde restant dû estimée.</div></div>
+              <div class="field"><label for="otherMonthlyCosts">Autres charges mensuelles (EUR)</label><input id="otherMonthlyCosts" type="number" inputmode="decimal" placeholder="ex: 0"></div>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap">
+              <button id="simulateBtn" class="primary" type="button">Simuler</button>
+              <button id="exportAmortBtn" class="secondary" type="button">Exporter amortissement (CSV)</button>
+            </div>
+            <hr class="sep"/>
+            <div class="kpis" id="simKpis"></div>
+          </div>
+        </div>
 
-<section id="sim" class="active">
-<h2>Simulateur prêt</h2>
-<input id="amount" placeholder="Montant prêt">
-<input id="rate" placeholder="Taux (%)">
-<input id="years" placeholder="Durée (années)">
-<button class="calc" onclick="simulate()">Calculer</button>
-<div class="card" id="simResult"></div>
-</section>
+        <div class="card">
+          <div class="head"><h2>Amortissement</h2><p>Détail mensuel (puis annuel).</p></div>
+          <div class="body">
+            <div class="pill"><span>Mode</span> <b id="amortMode">Mensuel</b></div>
+            <div style="height:10px"></div>
+            <div class="tableWrap">
+              <table><thead><tr><th>Période</th><th>Mensualité</th><th>Intérêts</th><th>Capital</th><th>Capital restant</th><th>Cumul intérêts</th></tr></thead><tbody id="amortBody"></tbody></table>
+            </div>
+          </div>
+        </div>
+      </div>
 
-<section id="invest">
-<h2>Investissement locatif</h2>
-<input id="rent" placeholder="Loyer mensuel">
-<input id="loan" placeholder="Mensualité crédit">
-<button class="calc" onclick="calcInvest()">Calculer</button>
-<div class="card" id="investResult"></div>
-</section>
+      <div class="card" style="margin-top:12px">
+        <div class="head"><h2>Comparaison durée</h2><p>Comparer 2 durées à taux identique.</p></div>
+        <div class="body"><div class="kpis" id="compareKpis"></div></div>
+      </div>
+    </section>
 
-<section id="sep">
-<h2>Séparation</h2>
-<input id="sale" placeholder="Prix vente">
-<input id="bank" placeholder="Solde banque">
-<button class="calc" onclick="calcSep()">Calculer</button>
-<div class="card" id="sepResult"></div>
-</section>
+    <section class="screen" id="screen-budget" style="display:none">
+      <div class="grid cols2">
+        <div class="card">
+          <div class="head"><h2>Budget total</h2><p>Prix + frais + apport + prêt + ASRD.</p></div>
+          <div class="body">
+            <div class="grid cols2">
+              <div class="field"><label for="price">Prix du bien (EUR)</label><input id="price" type="number" inputmode="decimal" placeholder="ex: 350000"></div>
+              <div class="field"><label for="downPayment">Apport (EUR)</label><input id="downPayment" type="number" inputmode="decimal" placeholder="ex: 50000"></div>
+              <div class="field"><label for="notaryFees">Frais notaire / droits (EUR)</label><input id="notaryFees" type="number" inputmode="decimal" placeholder="ex: 25000"></div>
+              <div class="field"><label for="otherOneOff">Autres frais one-off (EUR)</label><input id="otherOneOff" type="number" inputmode="decimal" placeholder="ex: 5000"></div>
+              <div class="field"><label for="budgetAsrdMonthly">ASRD (€/mois)</label><input id="budgetAsrdMonthly" type="number" inputmode="decimal" placeholder="ex: 45"></div>
+              <div class="field"><label for="loanFromBudget">Prêt (EUR)</label><input id="loanFromBudget" type="number" inputmode="decimal" placeholder="auto ou ex: 300000"><div class="help">Si vide: prêt = (prix + frais) − apport.</div></div>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap"><button id="calcBudgetBtn" class="primary" type="button">Calculer budget</button></div>
+            <hr class="sep"/><div class="kpis" id="budgetKpis"></div>
+          </div>
+        </div>
 
-<script>
-function showTab(id){
-  document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-}
+        <div class="card">
+          <div class="head"><h2>Tout-in sur la durée</h2><p>Crédit + ASRD + charges.</p></div>
+          <div class="body">
+            <div class="grid cols2">
+              <div class="field"><label for="budgetYears">Horizon (années)</label><select id="budgetYears"><option>10</option><option selected>20</option><option>25</option><option>30</option></select></div>
+              <div class="field"><label for="budgetMonthlyExtra">Charges mensuelles (EUR)</label><input id="budgetMonthlyExtra" type="number" inputmode="decimal" placeholder="ex: 0"></div>
+            </div>
+            <div class="kpis" id="budgetAllInKpis"></div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-function simulate(){
-  const P = parseFloat(amount.value)||0;
-  const r = (parseFloat(rate.value)||0)/100/12;
-  const n = (parseFloat(years.value)||0)*12;
-  if(!P||!r||!n){ simResult.innerHTML="Données invalides"; return; }
-  const m = P*r/(1-Math.pow(1+r,-n));
-  simResult.innerHTML = "Mensualité: " + m.toFixed(2) + " €";
-}
+    <section class="screen" id="screen-invest" style="display:none">
+      <div class="grid cols2">
+        <div class="card">
+          <div class="head"><h2>Investissement locatif</h2><p>Rendement brut/net + cashflow.</p></div>
+          <div class="body">
+            <div class="grid cols2">
+              <div class="field"><label for="invPrice">Prix total projet (EUR)</label><input id="invPrice" type="number" inputmode="decimal" placeholder="ex: 250000"></div>
+              <div class="field"><label for="invRent">Loyer mensuel (EUR)</label><input id="invRent" type="number" inputmode="decimal" placeholder="ex: 1100"></div>
+              <div class="field"><label for="invLoanMonthly">Mensualité crédit (EUR)</label><input id="invLoanMonthly" type="number" inputmode="decimal" placeholder="ex: 1400"></div>
+              <div class="field"><label for="invVacancyPct">Vacance locative (%)</label><input id="invVacancyPct" type="number" inputmode="decimal" value="4"></div>
+              <div class="field"><label for="invChargesAnnual">Charges annuelles (EUR)</label><input id="invChargesAnnual" type="number" inputmode="decimal" placeholder="ex: 1200"></div>
+              <div class="field"><label for="invTaxAnnual">Taxes annuelles (EUR)</label><input id="invTaxAnnual" type="number" inputmode="decimal" placeholder="ex: 900"></div>
+              <div class="field"><label for="invMgmtPct">Gestion / agence (%)</label><input id="invMgmtPct" type="number" inputmode="decimal" value="0"></div>
+              <div class="field"><label for="invMaintPct">Maintenance (%)</label><input id="invMaintPct" type="number" inputmode="decimal" value="3"></div>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap"><button id="calcInvestBtn" class="primary" type="button">Calculer investissement</button></div>
+            <hr class="sep"/><div class="kpis" id="investKpis"></div>
+          </div>
+        </div>
 
-function calcInvest(){
-  const rentVal = parseFloat(rent.value)||0;
-  const loanVal = parseFloat(loan.value)||0;
-  investResult.innerHTML = "Cashflow mensuel: " + (rentVal-loanVal).toFixed(2) + " €";
-}
+        <div class="card">
+          <div class="head"><h2>Détails</h2><p>Hypothèses utilisées.</p></div>
+          <div class="body"><div id="investDetails" class="small"></div></div>
+        </div>
+      </div>
+    </section>
 
-function calcSep(){
-  const saleVal = parseFloat(sale.value)||0;
-  const bankVal = parseFloat(bank.value)||0;
-  sepResult.innerHTML = "Net à partager: " + (saleVal-bankVal).toFixed(2) + " €";
-}
-</script>
+    <section class="screen" id="screen-buyrent" style="display:none">
+      <div class="grid cols2">
+        <div class="card">
+          <div class="head"><h2>Acheter vs louer</h2><p>Comparaison simplifiée.</p></div>
+          <div class="body">
+            <div class="grid cols2">
+              <div class="field"><label for="brHorizon">Horizon (années)</label><input id="brHorizon" type="number" inputmode="decimal" value="10"></div>
+              <div class="field"><label for="brRentMonthly">Loyer mensuel (EUR)</label><input id="brRentMonthly" type="number" inputmode="decimal" value="1200"></div>
+              <div class="field"><label for="brRentInflation">Inflation loyer (%)</label><input id="brRentInflation" type="number" inputmode="decimal" value="2"></div>
+              <div class="field"><label for="brAltReturn">Rendement placement alternatif (%)</label><input id="brAltReturn" type="number" inputmode="decimal" value="3"></div>
+              <div class="field"><label for="brBuyMonthly">Coût mensuel achat (EUR)</label><input id="brBuyMonthly" type="number" inputmode="decimal" placeholder="ex: 1600"></div>
+              <div class="field"><label for="brBuyExtraMonthly">Charges achat (EUR/mois)</label><input id="brBuyExtraMonthly" type="number" inputmode="decimal" value="0"></div>
+              <div class="field"><label for="brHomeValue">Valeur bien aujourd’hui (EUR)</label><input id="brHomeValue" type="number" inputmode="decimal" value="350000"></div>
+              <div class="field"><label for="brHomeAppreciation">Appréciation du bien (%)</label><input id="brHomeAppreciation" type="number" inputmode="decimal" value="2"></div>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap">
+              <button id="calcBuyRentBtn" class="primary" type="button">Comparer</button>
+              <button id="buyRentExportBtn" class="secondary" type="button">Exporter (CSV)</button>
+            </div>
+            <hr class="sep"/><div class="kpis" id="buyRentKpis"></div>
+          </div>
+        </div>
 
+        <div class="card">
+          <div class="head"><h2>Tableau annuel</h2><p>Évolution annuelle.</p></div>
+          <div class="body">
+            <div class="tableWrap">
+              <table><thead><tr><th>Année</th><th>Loyer annuel</th><th>Cumul loyer</th><th>Coût achat annuel</th><th>Cumul achat</th><th>Capital alternatif</th><th>Valeur bien</th></tr></thead><tbody id="buyRentBody"></tbody></table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-separation" style="display:none">
+      <div class="grid cols2">
+        <div class="card">
+          <div class="head"><h2>Séparation</h2><p>Vente (min/max) + travaux + répartition + soulte.</p></div>
+          <div class="body">
+            <div class="grid cols2">
+              <div class="field"><label for="sepSaleMin">Prix vente min (EUR)</label><input id="sepSaleMin" type="number" inputmode="decimal" value="300000"></div>
+              <div class="field"><label for="sepSaleMax">Prix vente max (EUR)</label><input id="sepSaleMax" type="number" inputmode="decimal" value="400000"></div>
+              <div class="field"><label for="sepStep">Incrément (EUR)</label><input id="sepStep" type="number" inputmode="decimal" value="5000"></div>
+              <div class="field"><label for="sepBankBalance">Solde banque (EUR)</label><input id="sepBankBalance" type="number" inputmode="decimal" value="200000"></div>
+              <div class="field"><label for="sepFeesMode">Frais vente</label><select id="sepFeesMode"><option value="none" selected>Aucun</option><option value="pct">% du prix</option><option value="fixed">Montant fixe</option></select></div>
+              <div class="field"><label for="sepFeesValue">Valeur frais</label><input id="sepFeesValue" type="number" inputmode="decimal" value="0"></div>
+              <div class="field"><label for="sepShareO">Part propriété O (%)</label><input id="sepShareO" type="number" inputmode="decimal" value="50"></div>
+              <div class="field"><label for="sepShareA">Part propriété A (%)</label><input id="sepShareA" type="number" inputmode="decimal" value="50" disabled></div>
+              <div class="field"><label for="sepWorksO">Travaux O (EUR)</label><input id="sepWorksO" type="number" inputmode="decimal" value="20000"></div>
+              <div class="field"><label for="sepWorksA">Travaux A (EUR)</label><input id="sepWorksA" type="number" inputmode="decimal" value="0"></div>
+              <div class="field"><label for="sepBuyoutPrice">Prix de rachat (EUR)</label><input id="sepBuyoutPrice" type="number" inputmode="decimal" placeholder="ex: 350000"></div>
+              <div class="field"><label for="sepBuyer">Qui rachète ?</label><select id="sepBuyer"><option value="O" selected>O rachète A</option><option value="A">A rachète O</option></select></div>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap">
+              <button id="sepCalcBtn" class="primary" type="button">Calculer</button>
+              <button id="sepExportBtn" class="secondary" type="button">Exporter (CSV)</button>
+            </div>
+            <hr class="sep"/><div class="kpis" id="sepKpis"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="head"><h2>Tableau (vente)</h2><p>Évolution par incrément.</p></div>
+          <div class="body">
+            <div class="tableWrap">
+              <table><thead><tr><th>Prix</th><th>Frais</th><th>Banque</th><th>Net</th><th>Remb. travaux O</th><th>Reste</th><th>Part O</th><th>Part A</th><th>Total O</th><th>Total A</th><th>Soulte</th></tr></thead><tbody id="sepBody"></tbody></table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-dashboard" style="display:none">
+      <div class="card">
+        <div class="head"><h2>Dashboard multi-biens</h2><p>Enregistre des scénarios (prêt/invest).</p></div>
+        <div class="body">
+          <div style="display:flex; gap:10px; flex-wrap:wrap">
+            <button id="saveScenarioBtn" class="primary" type="button">Enregistrer scénario</button>
+            <button id="dashClearBtn" class="danger" type="button">Vider</button>
+            <button id="dashExportBtn" class="secondary" type="button">Exporter (CSV)</button>
+          </div>
+          <hr class="sep"/>
+          <div class="tableWrap">
+            <table><thead><tr><th>Nom</th><th>Type</th><th>Mensualité</th><th>Coût total</th><th>Intérêts</th><th>Cashflow</th><th>Rendement net</th><th>Date</th></tr></thead><tbody id="dashBody"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>Mortgage Tool – Olivier • v2 • estimations indicatives • aucun conseil financier/juridique.</footer>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="app.js"></script>
 </body>
 </html>
